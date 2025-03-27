@@ -2,113 +2,36 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Azure Static Web App - Speech & OCR</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.1.1/docx.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js"></script>
-    <style>
-        body { font-family: Arial, sans-serif; text-align: center; }
-        .tab { display: none; }
-        .active { display: block; }
-        .tab-buttons button { margin: 10px; padding: 10px; cursor: pointer; }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STT & OCR Web App</title>
+    <script defer src="script.js"></script>
 </head>
 <body>
-
-    <h1>Azure Static Web App - Speech & OCR</h1>
+    <h1>STT & OCR Web App</h1>
     
-    <!-- Navigation Tabs -->
-    <div class="tab-buttons">
-        <button onclick="showTab('speechTab')">🎤 Speech-to-Text</button>
-        <button onclick="showTab('ocrTab')">📷 OCR (Image to Text)</button>
+    <div>
+        <button onclick="showTab('sttTab')">Speech-to-Text</button>
+        <button onclick="showTab('ocrTab')">OCR (Camera/Image/Scanner)</button>
     </div>
-
-    <!-- Speech-to-Text Tab -->
-    <div id="speechTab" class="tab active">
+    
+    <div id="sttTab">
         <h2>Speech-to-Text</h2>
-        <button id="startSpeech">🎤 Start Speech</button>
-        <button id="endSpeech" style="display: none;">🛑 End Speech</button>
-        <textarea id="speechText" rows="5" cols="50" placeholder="Speech will appear here..."></textarea>
-        <br><br>
-        <button id="downloadSpeechDoc">📄 Download as DOCX</button>
+        <textarea id="textOutput" rows="10" cols="50" placeholder="Speech will appear here..."></textarea>
+        <br>
+        <button onclick="startSTT()">Start Speech</button>
+        <button onclick="stopSTT()">Stop & Format</button>
+        <button onclick="generateDocx()">Generate DOCX</button>
     </div>
-
-    <script>
-        // Tab Switching Function
-        function showTab(tabId) {
-            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-        }
-
-        // Speech-to-Text with End Button
-        const startSpeechButton = document.getElementById("startSpeech");
-        const endSpeechButton = document.getElementById("endSpeech");
-        const speechText = document.getElementById("speechText");
-        const downloadSpeechDocButton = document.getElementById("downloadSpeechDoc");
-
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        let recognition;
-        let finalTranscript = "";
-
-        if (!SpeechRecognition) {
-            alert("Your browser does not support Speech Recognition.");
-        } else {
-            recognition = new SpeechRecognition();
-            recognition.lang = "en-US";
-            recognition.continuous = true;
-            recognition.interimResults = true;
-
-            startSpeechButton.addEventListener("click", () => {
-                finalTranscript = "";
-                recognition.start();
-                startSpeechButton.style.display = "none";
-                endSpeechButton.style.display = "inline";
-            });
-
-            recognition.onresult = (event) => {
-                let interimTranscript = "";
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    if (event.results[i].isFinal) {
-                        finalTranscript += event.results[i][0].transcript + "\n";
-                    } else {
-                        interimTranscript += event.results[i][0].transcript;
-                    }
-                }
-                speechText.value = finalTranscript + interimTranscript;
-            };
-
-            endSpeechButton.addEventListener("click", () => {
-                recognition.stop();
-                startSpeechButton.style.display = "inline";
-                endSpeechButton.style.display = "none";
-                speechText.value = formatAsBulletPoints(finalTranscript);
-            });
-        }
-
-        // Format speech text as bullet points
-        function formatAsBulletPoints(text) {
-            return text.split("\n").filter(line => line.trim() !== "").map(line => "• " + line.trim()).join("\n");
-        }
-
-        // Generate DOCX File
-        function downloadDoc(textAreaId, fileName) {
-            const { Document, Packer, Paragraph } = docx;
-            const textContent = document.getElementById(textAreaId).value || "No text provided.";
-            const doc = new Document({
-                sections: [{ children: textContent.split("\n").map(line => new Paragraph(line)) }],
-            });
-
-            Packer.toBlob(doc).then(blob => {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = fileName;
-                a.click();
-                URL.revokeObjectURL(url);
-            });
-        }
-
-        downloadSpeechDocButton.addEventListener("click", () => downloadDoc("speechText", "speech-text.docx"));
-    </script>
-
+    
+    <div id="ocrTab" style="display:none;">
+        <h2>OCR - Extract Text</h2>
+        <input type="file" id="imageUpload" accept="image/*">
+        <button onclick="useCamera()">Use Camera</button>
+        <button onclick="useScanner()">Use Scanner</button>
+        <br>
+        <textarea id="ocrOutput" rows="10" cols="50" placeholder="Extracted text will appear here..."></textarea>
+        <br>
+        <button onclick="generateDocx()">Generate DOCX</button>
+    </div>
 </body>
 </html>
