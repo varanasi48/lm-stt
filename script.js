@@ -1,81 +1,45 @@
-document.addEventListener("DOMContentLoaded", () => {
-    const textArea = document.getElementById("textArea");
-    const startSTTButton = document.getElementById("startSTT");
-    const stopSTTButton = document.getElementById("stopSTT");
-    const generateDocButton = document.getElementById("generateDoc");
-    const cameraInput = document.getElementById("cameraInput");
-    const imageInput = document.getElementById("imageInput");
-    const scannerInput = document.getElementById("scannerInput");
-
-    let recognition;
-    if ('webkitSpeechRecognition' in window) {
-        recognition = new webkitSpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = false;
-
-        recognition.onresult = (event) => {
-            for (let i = event.resultIndex; i < event.results.length; i++) {
-                if (event.results[i].isFinal) {
-                    textArea.value += "\n- " + event.results[i][0].transcript;
-                }
-            }
-        };
-    }
-
-    startSTTButton.addEventListener("click", () => {
-        if (recognition) {
-            recognition.start();
-        }
+function switchTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.style.display = "none";
     });
+    document.getElementById(tabId).style.display = "block";
+}
 
-    stopSTTButton.addEventListener("click", () => {
-        if (recognition) {
-            recognition.stop();
-        }
-    });
-
-    function performOCR(file) {
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function () {
-                Tesseract.recognize(reader.result, 'eng')
-                    .then(({ data: { text } }) => {
-                        textArea.value += "\n- " + text;
-                    });
-            };
-            reader.readAsDataURL(file);
-        }
-    }
-
-    cameraInput.addEventListener("change", (event) => {
-        performOCR(event.target.files[0]);
-    });
-
-    imageInput.addEventListener("change", (event) => {
-        performOCR(event.target.files[0]);
-    });
-
-    scannerInput.addEventListener("change", (event) => {
-        performOCR(event.target.files[0]);
-    });
-
-    generateDocButton.addEventListener("click", () => {
-        const doc = new docx.Document({
-            sections: [{
-                properties: {},
-                children: [
-                    new docx.Paragraph({
-                        text: textArea.value,
-                        bullet: { level: 0 },
-                    })
-                ],
-            }],
-        });
-        docx.Packer.toBlob(doc).then((blob) => {
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = "extracted_text.docx";
-            link.click();
-        });
-    });
+// Ensure the script runs after the page loads
+document.addEventListener("DOMContentLoaded", function () {
+    document.getElementById("startSpeech").addEventListener("click", startSpeechToText);
+    document.getElementById("endSpeech").addEventListener("click", endSpeechToText);
+    document.getElementById("captureCamera").addEventListener("click", captureFromCamera);
+    document.getElementById("uploadImage").addEventListener("click", uploadImage);
+    document.getElementById("useScanner").addEventListener("click", useScanner);
+    document.getElementById("generateDocx").addEventListener("click", generateDocx);
+    document.getElementById("generateDocxFromOCR").addEventListener("click", generateDocxFromOCR);
 });
+
+function startSpeechToText() {
+    console.log("Speech-to-Text Started...");
+}
+
+function endSpeechToText() {
+    console.log("Speech-to-Text Ended.");
+}
+
+function captureFromCamera() {
+    console.log("Capturing Image from Camera...");
+}
+
+function uploadImage() {
+    console.log("Uploading Image for OCR...");
+}
+
+function useScanner() {
+    console.log("Using Scanner for OCR...");
+}
+
+function generateDocx() {
+    console.log("Generating DOCX...");
+}
+
+function generateDocxFromOCR() {
+    console.log("Generating DOCX from OCR...");
+}
