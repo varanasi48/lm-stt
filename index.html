@@ -3,16 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <title>Little Miracles</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.1.1/docx.min.js"></script>
 </head>
 <body>
-    <h1>Welcome to Little MIracles</h1>
+    <h1>Welcome to Little Miracles</h1>
     
     <button id="startSpeech">🎤 Start Speech-to-Text</button>
     <textarea id="textArea" rows="5" cols="50" placeholder="Speech will appear here..."></textarea>
+    
+    <br><br>
+    <button id="downloadDoc">📄 Download as DOCX</button>
 
     <script>
         const startSpeechButton = document.getElementById("startSpeech");
         const textArea = document.getElementById("textArea");
+        const downloadDocButton = document.getElementById("downloadDoc");
 
         // Check if browser supports speech recognition
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -43,6 +48,30 @@
                 alert("Speech recognition error: " + event.error);
             };
         }
+
+        // Generate DOCX file
+        downloadDocButton.addEventListener("click", async () => {
+            const { Document, Packer, Paragraph } = docx;
+            const doc = new Document({
+                sections: [
+                    {
+                        properties: {},
+                        children: [
+                            new Paragraph(textArea.value || "No text provided."),
+                        ],
+                    },
+                ],
+            });
+
+            Packer.toBlob(doc).then(blob => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "speech-text.docx";
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+        });
     </script>
 </body>
 </html>
