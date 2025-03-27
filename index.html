@@ -2,76 +2,119 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Little Miracles</title>
+    <title>Azure Static Web App - Speech & OCR</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.1.1/docx.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        .tab { display: none; }
+        .active { display: block; }
+        .tab-buttons button { margin: 10px; padding: 10px; cursor: pointer; }
+    </style>
 </head>
 <body>
-    <h1>Welcome to Little Miracles</h1>
+
+    <h1>Azure Static Web App - Speech & OCR</h1>
     
-    <button id="startSpeech">🎤 Start Speech-to-Text</button>
-    <textarea id="textArea" rows="5" cols="50" placeholder="Speech will appear here..."></textarea>
-    
-    <br><br>
-    <button id="downloadDoc">📄 Download as DOCX</button>
+    <!-- Navigation Tabs -->
+    <div class="tab-buttons">
+        <button onclick="showTab('speechTab')">🎤 Speech-to-Text</button>
+        <button onclick="showTab('ocrTab')">📷 OCR (Image to Text)</button>
+    </div>
+
+    <!-- Speech-to-Text Tab -->
+    <div id="speechTab" class="tab active">
+        <h2>Speech-to-Text</h2>
+        <button id="startSpeech">🎤 Start Speech</button>
+        <textarea id="speechText" rows="5" cols="50" placeholder="Speech will appear here..."></textarea>
+        <br><br>
+        <button id="downloadSpeechDoc">📄 Download as DOCX</button>
+    </div>
+
+    <!-- OCR Tab -->
+    <div id="ocrTab" class="tab">
+        <h2>OCR - Extract Text from Image</h2>
+        <input type="file" id="imageInput" accept="image/*">
+        <br><br>
+        <button id="startOCR">📸 Start OCR</button>
+        <textarea id="ocrText" rows="5" cols="50" placeholder="Extracted text will appear here..."></textarea>
+        <br><br>
+        <button id="downloadOCRDoc">📄 Download OCR Text as DOCX</button>
+    </div>
 
     <script>
-        const startSpeechButton = document.getElementById("startSpeech");
-        const textArea = document.getElementById("textArea");
-        const downloadDocButton = document.getElementById("downloadDoc");
+        // Tab Switching Function
+        function showTab(tabId) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+        }
 
-        // Check if browser supports speech recognition
+        // Speech-to-Text
+        const startSpeechButton = document.getElementById("startSpeech");
+        const speechText = document.getElementById("speechText");
+        const downloadSpeechDocButton = document.getElementById("downloadSpeechDoc");
+
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition) {
             alert("Your browser does not support Speech Recognition.");
         } else {
             const recognition = new SpeechRecognition();
-            recognition.continuous = false;
-            recognition.interimResults = false;
             recognition.lang = "en-US";
-
+            
             startSpeechButton.addEventListener("click", () => {
                 recognition.start();
                 startSpeechButton.innerText = "🎤 Listening...";
             });
 
             recognition.onresult = (event) => {
-                const transcript = event.results[0][0].transcript;
-                textArea.value = transcript;
+                speechText.value = event.results[0][0].transcript;
             };
 
             recognition.onspeechend = () => {
                 recognition.stop();
-                startSpeechButton.innerText = "🎤 Start Speech-to-Text";
-            };
-
-            recognition.onerror = (event) => {
-                alert("Speech recognition error: " + event.error);
+                startSpeechButton.innerText = "🎤 Start Speech";
             };
         }
 
-        // Generate DOCX file
-        downloadDocButton.addEventListener("click", async () => {
+        // OCR Functionality
+        document.getElementById("startOCR").addEventListener("click", () => {
+            const imageInput = document.getElementById("imageInput").files[0];
+            if (!imageInput) {
+                alert("Please select an image first!");
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function () {
+                Tesseract.recognize(reader.result, 'eng')
+                    .then(({ data: { text } }) => {
+                        document.getElementById("ocrText").value = text;
+                    })
+                    .catch(error => alert("OCR Error: " + error));
+            };
+            reader.readAsDataURL(imageInput);
+        });
+
+        // Download DOCX Function
+        function downloadDoc(textAreaId, fileName) {
             const { Document, Packer, Paragraph } = docx;
+            const textContent = document.getElementById(textAreaId).value || "No text provided.";
             const doc = new Document({
-                sections: [
-                    {
-                        properties: {},
-                        children: [
-                            new Paragraph(textArea.value || "No text provided."),
-                        ],
-                    },
-                ],
+                sections: [{ children: [new Paragraph(textContent)] }],
             });
 
             Packer.toBlob(doc).then(blob => {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");
                 a.href = url;
-                a.download = "speech-text.docx";
+                a.download = fileName;
                 a.click();
                 URL.revokeObjectURL(url);
             });
-        });
+        }
+
+        downloadSpeechDocButton.addEventListener("click", () => downloadDoc("speechText", "speech-text.docx"));
+        document.getElementById("downloadOCRDoc").addEventListener("click", () => downloadDoc("ocrText", "ocr-text.docx"));
     </script>
+
 </body>
 </html>
