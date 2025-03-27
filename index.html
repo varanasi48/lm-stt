@@ -10,6 +10,7 @@
         .tab { display: none; }
         .active { display: block; }
         .tab-buttons button { margin: 10px; padding: 10px; cursor: pointer; }
+        video, canvas { width: 100%; max-width: 400px; display: none; }
     </style>
 </head>
 <body>
@@ -34,9 +35,16 @@
     <!-- OCR Tab -->
     <div id="ocrTab" class="tab">
         <h2>OCR - Extract Text from Image</h2>
-        <input type="file" id="imageInput" accept="image/*">
+        
+        <button onclick="chooseImageSource()">📷 Use Camera / 📁 Upload Image</button>
+        
+        <input type="file" id="imageInput" accept="image/*" style="display: none;">
+        <video id="video" autoplay></video>
+        <canvas id="canvas"></canvas>
+        <button id="captureButton" style="display: none;">📸 Capture</button>
+
         <br><br>
-        <button id="startOCR">📸 Start OCR</button>
+        <button id="startOCR">🔍 Start OCR</button>
         <textarea id="ocrText" rows="5" cols="50" placeholder="Extracted text will appear here..."></textarea>
         <br><br>
         <button id="downloadOCRDoc">📄 Download OCR Text as DOCX</button>
@@ -77,22 +85,65 @@
         }
 
         // OCR Functionality
-        document.getElementById("startOCR").addEventListener("click", () => {
-            const imageInput = document.getElementById("imageInput").files[0];
-            if (!imageInput) {
-                alert("Please select an image first!");
-                return;
+        const imageInput = document.getElementById("imageInput");
+        const video = document.getElementById("video");
+        const canvas = document.getElementById("canvas");
+        const captureButton = document.getElementById("captureButton");
+        let useCamera = false;
+
+        function chooseImageSource() {
+            const choice = confirm("Press OK to use Camera, Cancel to Upload an Image.");
+            if (choice) {
+                startCamera();
+            } else {
+                imageInput.click();
             }
-            const reader = new FileReader();
-            reader.onload = function () {
-                Tesseract.recognize(reader.result, 'eng')
-                    .then(({ data: { text } }) => {
-                        document.getElementById("ocrText").value = text;
-                    })
-                    .catch(error => alert("OCR Error: " + error));
-            };
-            reader.readAsDataURL(imageInput);
+        }
+
+        function startCamera() {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    video.style.display = "block";
+                    captureButton.style.display = "block";
+                    video.srcObject = stream;
+                    useCamera = true;
+                })
+                .catch(err => alert("Camera access denied: " + err));
+        }
+
+        captureButton.addEventListener("click", () => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(video, 0, 0);
+            video.srcObject.getTracks().forEach(track => track.stop());
+            video.style.display = "none";
+            captureButton.style.display = "none";
+            useCamera = false;
         });
+
+        document.getElementById("startOCR").addEventListener("click", () => {
+            if (useCamera) {
+                processImage(canvas.toDataURL());
+            } else {
+                const file = imageInput.files[0];
+                if (!file) {
+                    alert("Please select an image first!");
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = () => processImage(reader.result);
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function processImage(imageSrc) {
+            Tesseract.recognize(imageSrc, 'eng')
+                .then(({ data: { text } }) => {
+                    document.getElementById("ocrText").value = text;
+                })
+                .catch(error => alert("OCR Error: " + error));
+        }
 
         // Download DOCX Function
         function downloadDoc(textAreaId, fileName) {
