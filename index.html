@@ -2,9 +2,47 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Little Miracles </title>
+    <title>Little Miracles</title>
 </head>
 <body>
-    <h1>Welcome to Little Miracles!</h1>
+    <h1>Welcome to Little MIracles</h1>
+    
+    <button id="startSpeech">🎤 Start Speech-to-Text</button>
+    <textarea id="textArea" rows="5" cols="50" placeholder="Speech will appear here..."></textarea>
+
+    <script>
+        const startSpeechButton = document.getElementById("startSpeech");
+        const textArea = document.getElementById("textArea");
+
+        // Check if browser supports speech recognition
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            alert("Your browser does not support Speech Recognition.");
+        } else {
+            const recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = "en-US";
+
+            startSpeechButton.addEventListener("click", () => {
+                recognition.start();
+                startSpeechButton.innerText = "🎤 Listening...";
+            });
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                textArea.value = transcript;
+            };
+
+            recognition.onspeechend = () => {
+                recognition.stop();
+                startSpeechButton.innerText = "🎤 Start Speech-to-Text";
+            };
+
+            recognition.onerror = (event) => {
+                alert("Speech recognition error: " + event.error);
+            };
+        }
+    </script>
 </body>
 </html>
