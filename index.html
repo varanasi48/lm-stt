@@ -3,35 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>STT & OCR Web App</title>
-    <script defer src="script.js"></script>
+    <title>AI Tool</title>
 </head>
 <body>
-    <h1>STT & OCR Web App</h1>
-    
     <div>
-        <button onclick="showTab('sttTab')">Speech-to-Text</button>
-        <button onclick="showTab('ocrTab')">OCR (Camera/Image/Scanner)</button>
+        <button onclick="switchTab('sttTab')">Speech-to-Text</button>
+        <button onclick="switchTab('ocrTab')">OCR</button>
     </div>
-    
-    <div id="sttTab">
-        <h2>Speech-to-Text</h2>
-        <textarea id="textOutput" rows="10" cols="50" placeholder="Speech will appear here..."></textarea>
-        <br>
-        <button onclick="startSTT()">Start Speech</button>
-        <button onclick="stopSTT()">Stop & Format</button>
-        <button onclick="generateDocx()">Generate DOCX</button>
+
+    <div id="sttTab" class="tab-content">
+        <button id="startSpeech">Start Speech</button>
+        <button id="endSpeech">End Speech</button>
+        <textarea id="speechText"></textarea>
+        <button id="generateDocx">Generate DOCX</button>
     </div>
-    
-    <div id="ocrTab" style="display:none;">
-        <h2>OCR - Extract Text</h2>
-        <input type="file" id="imageUpload" accept="image/*">
-        <button onclick="useCamera()">Use Camera</button>
-        <button onclick="useScanner()">Use Scanner</button>
-        <br>
-        <textarea id="ocrOutput" rows="10" cols="50" placeholder="Extracted text will appear here..."></textarea>
-        <br>
-        <button onclick="generateDocx()">Generate DOCX</button>
+
+    <div id="ocrTab" class="tab-content" style="display:none;">
+        <button id="captureCamera">Use Camera</button>
+        <button id="uploadImage">Upload Image</button>
+        <button id="useScanner">Use Scanner</button>
+        <textarea id="ocrText"></textarea>
+        <button id="generateDocxFromOCR">Generate DOCX</button>
     </div>
+
+    <script src="script.js"></script>
 </body>
 </html>
