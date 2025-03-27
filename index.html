@@ -10,7 +10,6 @@
         .tab { display: none; }
         .active { display: block; }
         .tab-buttons button { margin: 10px; padding: 10px; cursor: pointer; }
-        video, canvas { width: 100%; max-width: 400px; display: none; }
     </style>
 </head>
 <body>
@@ -27,27 +26,10 @@
     <div id="speechTab" class="tab active">
         <h2>Speech-to-Text</h2>
         <button id="startSpeech">🎤 Start Speech</button>
+        <button id="endSpeech" style="display: none;">🛑 End Speech</button>
         <textarea id="speechText" rows="5" cols="50" placeholder="Speech will appear here..."></textarea>
         <br><br>
         <button id="downloadSpeechDoc">📄 Download as DOCX</button>
-    </div>
-
-    <!-- OCR Tab -->
-    <div id="ocrTab" class="tab">
-        <h2>OCR - Extract Text from Image</h2>
-        
-        <button onclick="chooseImageSource()">📷 Use Camera / 📁 Upload Image</button>
-        
-        <input type="file" id="imageInput" accept="image/*" style="display: none;">
-        <video id="video" autoplay></video>
-        <canvas id="canvas"></canvas>
-        <button id="captureButton" style="display: none;">📸 Capture</button>
-
-        <br><br>
-        <button id="startOCR">🔍 Start OCR</button>
-        <textarea id="ocrText" rows="5" cols="50" placeholder="Extracted text will appear here..."></textarea>
-        <br><br>
-        <button id="downloadOCRDoc">📄 Download OCR Text as DOCX</button>
     </div>
 
     <script>
@@ -57,100 +39,62 @@
             document.getElementById(tabId).classList.add('active');
         }
 
-        // Speech-to-Text
+        // Speech-to-Text with End Button
         const startSpeechButton = document.getElementById("startSpeech");
+        const endSpeechButton = document.getElementById("endSpeech");
         const speechText = document.getElementById("speechText");
         const downloadSpeechDocButton = document.getElementById("downloadSpeechDoc");
 
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition;
+        let finalTranscript = "";
+
         if (!SpeechRecognition) {
             alert("Your browser does not support Speech Recognition.");
         } else {
-            const recognition = new SpeechRecognition();
+            recognition = new SpeechRecognition();
             recognition.lang = "en-US";
-            
+            recognition.continuous = true;
+            recognition.interimResults = true;
+
             startSpeechButton.addEventListener("click", () => {
+                finalTranscript = "";
                 recognition.start();
-                startSpeechButton.innerText = "🎤 Listening...";
+                startSpeechButton.style.display = "none";
+                endSpeechButton.style.display = "inline";
             });
 
             recognition.onresult = (event) => {
-                speechText.value = event.results[0][0].transcript;
-            };
-
-            recognition.onspeechend = () => {
-                recognition.stop();
-                startSpeechButton.innerText = "🎤 Start Speech";
-            };
-        }
-
-        // OCR Functionality
-        const imageInput = document.getElementById("imageInput");
-        const video = document.getElementById("video");
-        const canvas = document.getElementById("canvas");
-        const captureButton = document.getElementById("captureButton");
-        let useCamera = false;
-
-        function chooseImageSource() {
-            const choice = confirm("Press OK to use Camera, Cancel to Upload an Image.");
-            if (choice) {
-                startCamera();
-            } else {
-                imageInput.click();
-            }
-        }
-
-        function startCamera() {
-            navigator.mediaDevices.getUserMedia({ video: true })
-                .then(stream => {
-                    video.style.display = "block";
-                    captureButton.style.display = "block";
-                    video.srcObject = stream;
-                    useCamera = true;
-                })
-                .catch(err => alert("Camera access denied: " + err));
-        }
-
-        captureButton.addEventListener("click", () => {
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const ctx = canvas.getContext("2d");
-            ctx.drawImage(video, 0, 0);
-            video.srcObject.getTracks().forEach(track => track.stop());
-            video.style.display = "none";
-            captureButton.style.display = "none";
-            useCamera = false;
-        });
-
-        document.getElementById("startOCR").addEventListener("click", () => {
-            if (useCamera) {
-                processImage(canvas.toDataURL());
-            } else {
-                const file = imageInput.files[0];
-                if (!file) {
-                    alert("Please select an image first!");
-                    return;
+                let interimTranscript = "";
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript + "\n";
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
                 }
-                const reader = new FileReader();
-                reader.onload = () => processImage(reader.result);
-                reader.readAsDataURL(file);
-            }
-        });
+                speechText.value = finalTranscript + interimTranscript;
+            };
 
-        function processImage(imageSrc) {
-            Tesseract.recognize(imageSrc, 'eng')
-                .then(({ data: { text } }) => {
-                    document.getElementById("ocrText").value = text;
-                })
-                .catch(error => alert("OCR Error: " + error));
+            endSpeechButton.addEventListener("click", () => {
+                recognition.stop();
+                startSpeechButton.style.display = "inline";
+                endSpeechButton.style.display = "none";
+                speechText.value = formatAsBulletPoints(finalTranscript);
+            });
         }
 
-        // Download DOCX Function
+        // Format speech text as bullet points
+        function formatAsBulletPoints(text) {
+            return text.split("\n").filter(line => line.trim() !== "").map(line => "• " + line.trim()).join("\n");
+        }
+
+        // Generate DOCX File
         function downloadDoc(textAreaId, fileName) {
             const { Document, Packer, Paragraph } = docx;
             const textContent = document.getElementById(textAreaId).value || "No text provided.";
             const doc = new Document({
-                sections: [{ children: [new Paragraph(textContent)] }],
+                sections: [{ children: textContent.split("\n").map(line => new Paragraph(line)) }],
             });
 
             Packer.toBlob(doc).then(blob => {
@@ -164,7 +108,6 @@
         }
 
         downloadSpeechDocButton.addEventListener("click", () => downloadDoc("speechText", "speech-text.docx"));
-        document.getElementById("downloadOCRDoc").addEventListener("click", () => downloadDoc("ocrText", "ocr-text.docx"));
     </script>
 
 </body>
